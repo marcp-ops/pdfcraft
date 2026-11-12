@@ -4631,6 +4631,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-pen"
+version = "0.21.1"
+dependencies = [
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "pdfcraft-platform"
 version = "0.21.1"
 dependencies = [
@@ -4812,6 +4819,7 @@ dependencies = [
  "pdfcraft-fonts",
  "pdfcraft-model",
  "pdfcraft-ocr",
+ "pdfcraft-pen",
  "pdfcraft-platform",
  "pdfcraft-render",
  "pdfcraft-xfa",

@@ -203,12 +203,14 @@ pub enum Edit {
         state: ReviewState,
         author: String,
     },
-    /// The Eraser: rub out the parts of drawing `(page, index)` near `path` (user space).
+    /// The Eraser: rub out the parts of drawing `(page, index)` near `path` (user space), or with
+    /// `whole`, every stroke `path` touches (the line eraser).
     EraseInk {
         page: usize,
         index: usize,
         path: Vec<[f64; 2]>,
         radius: f64,
+        whole: bool,
     },
     /// Replace Text: strike out `quads` and add a grouped caret holding `text`.
     ReplaceText {

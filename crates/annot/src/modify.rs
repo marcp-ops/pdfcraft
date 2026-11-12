@@ -1485,6 +1485,25 @@ pub fn add_text_replacement(doc: &mut Document, replacement: TextReplacement<'_>
 /// of `path`, splitting strokes where they are cut. A drawing with nothing left is deleted.
 /// Returns whether anything was erased.
 pub fn erase_ink(doc: &mut Document, page: usize, index: usize, path: &[[f64; 2]], radius: f64, meta: &Meta) -> Result<bool, AnnotError> {
+    erase_ink_with(doc, page, index, path, radius, false, meta)
+}
+
+/// The line eraser: like [`erase_ink`], but every stroke of drawing `(page, index)` that `path`
+/// touches goes as a whole; the strokes it misses stay exactly as they were. Returns whether
+/// anything was erased.
+pub fn erase_ink_whole(doc: &mut Document, page: usize, index: usize, path: &[[f64; 2]], radius: f64, meta: &Meta) -> Result<bool, AnnotError> {
+    erase_ink_with(doc, page, index, path, radius, true, meta)
+}
+
+fn erase_ink_with(
+    doc: &mut Document,
+    page: usize,
+    index: usize,
+    path: &[[f64; 2]],
+    radius: f64,
+    whole: bool,
+    meta: &Meta,
+) -> Result<bool, AnnotError> {
     let (_, r) = annot_ref(doc, page, index)?;
     unlocked(doc, r)?;
     let d = annot_dict(doc, r);
@@ -1532,6 +1551,14 @@ pub fn erase_ink(doc: &mut Document, page: usize, index: usize, path: &[[f64; 2]
                 return Err(AnnotError::Invalid("the drawing is too large to erase at this eraser size".into()));
             }
             pts.push(*last);
+        }
+        if whole {
+            if pts.iter().any(|p| near(*p)) {
+                erased = true;
+            } else if !s.is_empty() {
+                kept.push(s.clone());
+            }
+            continue;
         }
         let mut run: Vec<[f64; 2]> = Vec::new();
         for p in pts {

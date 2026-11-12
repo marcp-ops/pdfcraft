@@ -509,18 +509,42 @@ impl Gestures<'_> {
                 points.push(held(points.first(), u, line && shift));
             }
         }
+        // The line eraser works while it moves: each new stretch of the path takes the strokes it
+        // touches at once, and only its last point is kept to start the next stretch. Shift keeps
+        // the old eraser, which rubs out only what it passes over, when the drag ends.
+        if !shift
+            && !resp.drag_stopped()
+            && view.pending_edit.is_none()
+            && let Some(Gesture::Draw { page, tool: CommentTool::Eraser, points }) = cv.gesture.as_mut()
+            && *page == cx.page
+            && points.len() >= 2
+        {
+            let stretch = std::mem::take(points);
+            if let Some(last) = stretch.last() {
+                points.push(*last);
+            }
+            view.pending_edit = erase(cx, &stretch, true);
+        }
         if resp.drag_stopped()
             && let Some(Gesture::Draw { page, tool, points }) = cv.gesture.clone()
             && page == cx.page
         {
             cv.gesture = None;
             if tool == CommentTool::Eraser {
-                view.pending_edit = erase(cx, &points);
+                view.pending_edit = erase(cx, &points, !shift);
             } else if let Some(shape) = drawn_shape(tool, &points) {
                 let now = ui.input(|i| i.time);
                 cv.settle(now, page, tool, &points);
                 view.pending_edit = Some(new_comment(cx, tool, shape, String::new()));
             }
+        }
+        // A tap with the eraser takes the strokes under it.
+        if tool == CommentTool::Eraser
+            && self.clicked()
+            && over_page
+            && let Some(p) = pointer
+        {
+            view.pending_edit = erase(cx, &[cx.to_user(p)], true);
         }
         // A quick press/release does not start an egui drag, but Acrobat's Draw tool treats
         // it as a one-point ink stroke (a dot). The appearance uses round line caps, so a

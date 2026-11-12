@@ -385,8 +385,9 @@ fn eraser_radius_px(width: f64) -> f64 {
 }
 
 /// Eraser: rub out drawings along `path` (user space); one undo step for all of them. It rubs
-/// as wide on screen as its preview, whatever the zoom.
-pub(super) fn erase(cx: &PageCx<'_>, path: &[[f64; 2]]) -> Option<Edit> {
+/// as wide on screen as its preview, whatever the zoom. With `whole`, every stroke the path
+/// touches goes entirely (the line eraser).
+pub(super) fn erase(cx: &PageCx<'_>, path: &[[f64; 2]], whole: bool) -> Option<Edit> {
     let zoom = f64::from(cx.xf.zoom());
     // A page with no size on screen has nothing to rub out (and no finite radius).
     if !(zoom.is_finite() && zoom > 0.0) {
@@ -409,7 +410,7 @@ pub(super) fn erase(cx: &PageCx<'_>, path: &[[f64; 2]]) -> Option<Edit> {
     }
     // Later indices first: deleting an emptied drawing shifts the ones after it.
     hits.sort_unstable_by(|a, b| b.cmp(a));
-    let edits = hits.into_iter().map(|index| Edit::EraseInk { page: cx.page, index, path: path.to_vec(), radius }).collect();
+    let edits = hits.into_iter().map(|index| Edit::EraseInk { page: cx.page, index, path: path.to_vec(), radius, whole }).collect();
     Some(Edit::Batch { label: "Erase".into(), edits })
 }
 

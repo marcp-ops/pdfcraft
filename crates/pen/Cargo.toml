@@ -1,0 +1,12 @@
+[package]
+name = "pdfcraft-pen"
+description = "Reads the Windows pen state (eraser end, barrel button) that winit drops"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# No `[lints] workspace = true`: the workspace forbids `unsafe`, and the one Win32 call here needs
+# it. The crate root denies it everywhere but that call.
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_Pointer", "Win32_UI_WindowsAndMessaging", "Win32_UI_Controls"] }

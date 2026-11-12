@@ -663,8 +663,12 @@ pub(crate) fn run_edit(doc: &mut pdfcraft_cos::Document, edit: &Edit, cx: &mut E
         Edit::SetAnnotationStatus { page, index, state, author } => {
             pdfcraft_annot::set_review_state(doc, *page, *index, *state, author, &cx.meta())?;
         }
-        Edit::EraseInk { page, index, path, radius } => {
-            pdfcraft_annot::erase_ink(doc, *page, *index, path, *radius, &cx.meta())?;
+        Edit::EraseInk { page, index, path, radius, whole } => {
+            if *whole {
+                pdfcraft_annot::erase_ink_whole(doc, *page, *index, path, *radius, &cx.meta())?;
+            } else {
+                pdfcraft_annot::erase_ink(doc, *page, *index, path, *radius, &cx.meta())?;
+            }
         }
         Edit::FixHairlines { pages, settings } => {
             let fixed = pdfcraft_edit::fix_hairlines(doc, pages, settings)?;

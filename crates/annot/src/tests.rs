@@ -1981,6 +1981,24 @@ fn the_eraser_cuts_strokes_and_removes_empty_drawings() {
     assert!(!list(&doc, 0).iter().any(|d| d.name(b"Subtype") == Some(b"Ink")));
 }
 
+#[test]
+fn the_line_eraser_takes_touched_strokes_whole_and_keeps_the_rest() {
+    let mut doc = fixture();
+    let line = |y: f64| (0..=10).map(|k| [100.0 + k as f64 * 20.0, y]).collect::<Vec<_>>();
+    let shape = Shape::Ink { strokes: vec![line(500.0), line(400.0)] };
+    let i = add_annotation(&mut doc, &new(0, shape), &meta("i")).unwrap();
+    // A tap on the upper line only.
+    assert!(erase_ink_whole(&mut doc, 0, i, &[[200.0, 500.0]], 5.0, &meta("e")).unwrap());
+    let d = &list(&doc, 0)[i];
+    let strokes = d.get(b"InkList").unwrap().as_array().unwrap();
+    assert_eq!(strokes.len(), 1, "only the untouched line is left, uncut");
+    assert_eq!(strokes[0].as_array().unwrap().len(), 22, "its eleven points, whole");
+    assert!(!erase_ink_whole(&mut doc, 0, i, &[[600.0, 100.0]], 5.0, &meta("e")).unwrap(), "nothing under the eraser");
+    // Touching the last line deletes the drawing.
+    assert!(erase_ink_whole(&mut doc, 0, i, &[[300.0, 450.0], [300.0, 380.0]], 5.0, &meta("e")).unwrap());
+    assert!(!list(&doc, 0).iter().any(|d| d.name(b"Subtype") == Some(b"Ink")));
+}
+
 /// A document holding only a catalog, for appearance builds from a bare dictionary whose
 /// values are all direct.
 fn bare_doc() -> Document {

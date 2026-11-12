@@ -95,6 +95,8 @@ impl PdfCraftApp {
             portfolio_panel: None,
             quick_tool: QuickTool::Select,
             space_hand: None,
+            pen: Default::default(),
+            pen_eraser: None,
             full_screen_tool: None,
             comment_prefs: Default::default(),
             hotbar: Default::default(),
@@ -540,6 +542,8 @@ impl eframe::App for PdfCraftApp {
         let known = ctx.input(|i| i.pointer.latest_pos().is_some());
         let size = ctx.input(|i| i.viewport().inner_rect).map_or(egui::Vec2::ZERO, |r| r.size());
         drag_pointer::locate_wheel(raw, known, size, || drag_pointer::in_window(ctx));
+        self.pen.observe(raw);
+        self.follow_pen_eraser();
         self.prepare_raw_input(ctx, raw);
         if raw.hovered_files.is_empty() && raw.dropped_files.is_empty() {
             return;
@@ -581,7 +585,25 @@ impl eframe::App for PdfCraftApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.begin_ui();
         self.guarded_frame(|app| app.ui_unguarded(ui));
+        self.pen.show_window(ui.ctx());
         self.end_ui();
+    }
+}
+
+impl PdfCraftApp {
+    /// The pen turned over is the Eraser; turned back, the tool it had before.
+    fn follow_pen_eraser(&mut self) {
+        let eraser = QuickTool::Comment(comments::CommentTool::Eraser);
+        if self.pen.eraser {
+            if self.pen_eraser.is_none() && self.quick_tool != eraser {
+                self.pen_eraser = Some(self.quick_tool);
+                self.quick_tool = eraser;
+            }
+        } else if let Some(previous) = self.pen_eraser.take()
+            && self.quick_tool == eraser
+        {
+            self.quick_tool = previous;
+        }
     }
 }
 
