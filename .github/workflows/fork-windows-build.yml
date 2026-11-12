@@ -1,0 +1,57 @@
+# Personal fork build: a Windows x64 pdfcraft.exe (pen and eraser changes), downloadable from the
+# run's "Artifacts". Not part of upstream CI; it lives only in this fork.
+name: Fork Windows build
+
+on:
+  push:
+    branches: [pen-eraser]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned craft-i18n revision
+        id: i18n
+        shell: bash
+        run: echo "rev=$(tr -d '[:space:]' < craft-i18n.rev)" >> "$GITHUB_OUTPUT"
+
+      # The translations (German among them) are embedded at build time.
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-i18n
+          ref: ${{ steps.i18n.outputs.rev }}
+          path: craft-i18n
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build pdfcraft.exe
+        shell: bash
+        env:
+          CRAFT_I18N_DIR: ${{ github.workspace }}/craft-i18n
+        run: cargo build --release -p pdfcraft
+
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir dist
+          cp target/release/pdfcraft.exe dist/
+          git rev-parse --short HEAD > dist/BUILD.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdfcraft-windows-x64
+          path: dist/
+          if-no-files-found: error
